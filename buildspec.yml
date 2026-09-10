@@ -5,6 +5,7 @@ phases:
     runtime-versions:
       nodejs: 20
     commands:
+      - cd citibank-practice-frontend
       - npm ci
 
   build:
@@ -14,4 +15,4 @@ phases:
 artifacts:
   files:
     - '**/*'
-  base-directory: dist
+  base-directory: citibank-practice-frontend/dist
