@@ -38,8 +38,14 @@ def get_connection():
     Create a connection to Aurora PostgreSQL
     using IAM database authentication.
     """
-
     token = get_iam_auth_token()
+
+    print(f"DB host: {DB_HOST}")
+    print(f"DB port: {DB_PORT}")
+    print(f"DB name: {DB_NAME}")
+    print(f"DB user: {DB_USER}")
+    print(f"AWS region: {AWS_REGION}")
+    print("Attempting Aurora IAM connection...")
 
     connection = psycopg.connect(
         host=DB_HOST,
@@ -49,5 +55,7 @@ def get_connection():
         password=token,
         sslmode="require",
     )
+
+    print("Aurora IAM connection successful.")
 
     return connection
