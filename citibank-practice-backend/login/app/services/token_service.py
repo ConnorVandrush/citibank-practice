@@ -4,7 +4,7 @@ import os
 from jose import jwt
 
 
-JWT_SECRET = os.getenv("JWT_SECRET", "development-secret-change-me")
+JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_MINUTES = 60
 
