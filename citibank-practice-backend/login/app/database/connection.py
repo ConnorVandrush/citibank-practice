@@ -15,6 +15,10 @@ def get_iam_auth_token():
     Generate a temporary IAM authentication token
     for connecting to Aurora PostgreSQL.
     """
+    sts = boto3.client("sts", region_name=AWS_REGION)
+    identity = sts.get_caller_identity()
+
+    print(f"AWS caller identity: {identity['Arn']}")
 
     rds = boto3.client(
         "rds",
@@ -47,8 +51,3 @@ def get_connection():
     )
 
     return connection
-
-if __name__ == "__main__":
-    connection = get_connection()
-    print("Successfully connected to Aurora PostgreSQL using IAM authentication.")
-    connection.close()
