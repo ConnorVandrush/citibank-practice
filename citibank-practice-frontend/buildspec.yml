@@ -10,9 +10,16 @@ phases:
 
   build:
     commands:
+      - cd citibank-practice-frontend
       - npm run build
+
+  post_build:
+    commands:
+      - cd citibank-practice-frontend
+      - aws s3 sync dist/ s3://citibank-practice-frontend/ --delete
+      - aws cloudfront create-invalidation --distribution-id E2K4MU9ZD8J7XK --paths "/*"
 
 artifacts:
   files:
-    - '**/*'
+    - "**/*"
   base-directory: citibank-practice-frontend/dist
