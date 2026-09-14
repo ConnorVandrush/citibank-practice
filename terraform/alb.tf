@@ -1,3 +1,7 @@
+# =========================================================
+# Application Load Balancer
+# =========================================================
+
 resource "aws_lb" "backend" {
   name               = "citibank-practice-backend-alb"
   internal           = false
@@ -18,9 +22,9 @@ resource "aws_lb" "backend" {
 }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Target Group: Login
-# ---------------------------------------------------------
+# =========================================================
 
 resource "aws_lb_target_group" "login" {
   name        = "citibank-login-tg"
@@ -30,15 +34,18 @@ resource "aws_lb_target_group" "login" {
   vpc_id      = aws_vpc.main.id
 
   health_check {
-    enabled             = true
-    path                = "/health"
-    protocol            = "HTTP"
-    port                = "traffic-port"
+    enabled  = true
+    path     = "/health"
+    protocol = "HTTP"
+    port     = "traffic-port"
+
     healthy_threshold   = 2
     unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
-    matcher             = "200"
+
+    timeout  = 5
+    interval = 30
+
+    matcher = "200"
   }
 
   tags = {
@@ -47,9 +54,9 @@ resource "aws_lb_target_group" "login" {
 }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Target Group: Employees
-# ---------------------------------------------------------
+# =========================================================
 
 resource "aws_lb_target_group" "employees" {
   name        = "citibank-employees-tg"
@@ -59,15 +66,18 @@ resource "aws_lb_target_group" "employees" {
   vpc_id      = aws_vpc.main.id
 
   health_check {
-    enabled             = true
-    path                = "/health"
-    protocol            = "HTTP"
-    port                = "traffic-port"
+    enabled  = true
+    path     = "/health"
+    protocol = "HTTP"
+    port     = "traffic-port"
+
     healthy_threshold   = 2
     unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
-    matcher             = "200"
+
+    timeout  = 5
+    interval = 30
+
+    matcher = "200"
   }
 
   tags = {
@@ -76,9 +86,9 @@ resource "aws_lb_target_group" "employees" {
 }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Target Group: Managers
-# ---------------------------------------------------------
+# =========================================================
 
 resource "aws_lb_target_group" "managers" {
   name        = "citibank-managers-tg"
@@ -88,15 +98,18 @@ resource "aws_lb_target_group" "managers" {
   vpc_id      = aws_vpc.main.id
 
   health_check {
-    enabled             = true
-    path                = "/health"
-    protocol            = "HTTP"
-    port                = "traffic-port"
+    enabled  = true
+    path     = "/health"
+    protocol = "HTTP"
+    port     = "traffic-port"
+
     healthy_threshold   = 2
     unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
-    matcher             = "200"
+
+    timeout  = 5
+    interval = 30
+
+    matcher = "200"
   }
 
   tags = {
@@ -105,9 +118,9 @@ resource "aws_lb_target_group" "managers" {
 }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Target Group: Finance Administrator
-# ---------------------------------------------------------
+# =========================================================
 
 resource "aws_lb_target_group" "finance_admin" {
   name        = "citibank-finance-admin-tg"
@@ -117,15 +130,18 @@ resource "aws_lb_target_group" "finance_admin" {
   vpc_id      = aws_vpc.main.id
 
   health_check {
-    enabled             = true
-    path                = "/health"
-    protocol            = "HTTP"
-    port                = "traffic-port"
+    enabled  = true
+    path     = "/health"
+    protocol = "HTTP"
+    port     = "traffic-port"
+
     healthy_threshold   = 2
     unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
-    matcher             = "200"
+
+    timeout  = 5
+    interval = 30
+
+    matcher = "200"
   }
 
   tags = {
@@ -134,12 +150,12 @@ resource "aws_lb_target_group" "finance_admin" {
 }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # HTTP Listener
 #
-# CloudFront will communicate with the ALB over HTTP.
-# The browser still communicates with CloudFront over HTTPS.
-# ---------------------------------------------------------
+# CloudFront communicates with the ALB over HTTP.
+# The browser communicates with CloudFront over HTTPS.
+# =========================================================
 
 resource "aws_lb_listener" "backend" {
   load_balancer_arn = aws_lb.backend.arn
@@ -162,10 +178,14 @@ resource "aws_lb_listener" "backend" {
 }
 
 
-# ---------------------------------------------------------
-# Login routing
-# /api/auth/* -> Login service
-# ---------------------------------------------------------
+# =========================================================
+# Login Routing
+#
+# POST /auth/login
+# GET  /auth/...
+#
+# -> Login ECS service
+# =========================================================
 
 resource "aws_lb_listener_rule" "login" {
   listener_arn = aws_lb_listener.backend.arn
@@ -178,16 +198,19 @@ resource "aws_lb_listener_rule" "login" {
 
   condition {
     path_pattern {
-      values = ["/api/auth/*"]
+      values = ["/auth/*"]
     }
   }
 }
 
 
-# ---------------------------------------------------------
-# Employee routing
-# /api/employees/* -> Employee service
-# ---------------------------------------------------------
+# =========================================================
+# Employee Routing
+#
+# /employees/*
+#
+# -> Employee ECS service
+# =========================================================
 
 resource "aws_lb_listener_rule" "employees" {
   listener_arn = aws_lb_listener.backend.arn
@@ -200,16 +223,19 @@ resource "aws_lb_listener_rule" "employees" {
 
   condition {
     path_pattern {
-      values = ["/api/employees/*"]
+      values = ["/employees/*"]
     }
   }
 }
 
 
-# ---------------------------------------------------------
-# Manager routing
-# /api/manager/* -> Manager service
-# ---------------------------------------------------------
+# =========================================================
+# Manager Routing
+#
+# /manager/*
+#
+# -> Manager ECS service
+# =========================================================
 
 resource "aws_lb_listener_rule" "managers" {
   listener_arn = aws_lb_listener.backend.arn
@@ -222,16 +248,19 @@ resource "aws_lb_listener_rule" "managers" {
 
   condition {
     path_pattern {
-      values = ["/api/manager/*"]
+      values = ["/manager/*"]
     }
   }
 }
 
 
-# ---------------------------------------------------------
-# Finance Administrator routing
-# /api/expenses/* -> Finance Admin service
-# ---------------------------------------------------------
+# =========================================================
+# Finance Administrator Routing
+#
+# /expenses/*
+#
+# -> Finance Administrator ECS service
+# =========================================================
 
 resource "aws_lb_listener_rule" "finance_admin" {
   listener_arn = aws_lb_listener.backend.arn
@@ -244,15 +273,15 @@ resource "aws_lb_listener_rule" "finance_admin" {
 
   condition {
     path_pattern {
-      values = ["/api/expenses/*"]
+      values = ["/expenses/*"]
     }
   }
 }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Outputs
-# ---------------------------------------------------------
+# =========================================================
 
 output "backend_alb_dns_name" {
   description = "DNS name of the backend Application Load Balancer"
