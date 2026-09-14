@@ -1,5 +1,5 @@
 import os
-import getpass
+
 import boto3
 import bcrypt
 import psycopg
@@ -14,11 +14,11 @@ AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
 
 DB_HOST = os.getenv(
     "DB_HOST",
-    "database-1-instance-1.cp6ueu08a65t.us-east-2.rds.amazonaws.com"
+    "citibank-practice-postgres.cp6ueu08a65t.us-east-2.rds.amazonaws.com"
 )
 
 DB_PORT = int(os.getenv("DB_PORT", "5432"))
-DB_NAME = os.getenv("DB_NAME", "postgres")
+DB_NAME = os.getenv("DB_NAME", "expenses")
 DB_USER = os.getenv("DB_USER", "postgres")
 
 
@@ -28,11 +28,17 @@ DB_USER = os.getenv("DB_USER", "postgres")
 
 def get_iam_auth_token():
     """
-    Generate a temporary IAM authentication token for Aurora.
-    The token is valid for approximately 15 minutes.
+    Generate a temporary IAM authentication token for
+    the RDS PostgreSQL database.
+
+    IAM authentication tokens are valid for approximately
+    15 minutes.
     """
 
-    rds = boto3.client("rds", region_name=AWS_REGION)
+    rds = boto3.client(
+        "rds",
+        region_name=AWS_REGION
+    )
 
     token = rds.generate_db_auth_token(
         DBHostname=DB_HOST,
@@ -50,8 +56,9 @@ def get_iam_auth_token():
 
 def get_connection():
     """
-    Connect to Aurora PostgreSQL using IAM authentication.
-    SSL is required for IAM database authentication.
+    Connect to RDS PostgreSQL using IAM authentication.
+
+    SSL is required when using IAM database authentication.
     """
 
     token = get_iam_auth_token()
@@ -90,11 +97,15 @@ def hash_password(password):
 # ============================================================
 
 def recreate_tables(conn):
+    """
+    Drop and recreate the application tables.
+    """
 
     with conn.cursor() as cur:
 
         print("Dropping existing tables...")
 
+        # Drop expenses first because it references users.
         cur.execute("""
             DROP TABLE IF EXISTS expenses;
         """)
@@ -112,6 +123,7 @@ def recreate_tables(conn):
                 password_hash VARCHAR(255) NOT NULL,
                 role VARCHAR(50) NOT NULL,
                 manager_id BIGINT,
+
                 CONSTRAINT fk_users_manager
                     FOREIGN KEY (manager_id)
                     REFERENCES users(user_id)
@@ -140,6 +152,28 @@ def recreate_tables(conn):
             );
         """)
 
+        print("Creating indexes...")
+
+        cur.execute("""
+            CREATE INDEX idx_users_manager_id
+            ON users(manager_id);
+        """)
+
+        cur.execute("""
+            CREATE INDEX idx_expenses_employee_id
+            ON expenses(employee_id);
+        """)
+
+        cur.execute("""
+            CREATE INDEX idx_expenses_approved_by
+            ON expenses(approved_by);
+        """)
+
+        cur.execute("""
+            CREATE INDEX idx_expenses_status
+            ON expenses(status);
+        """)
+
     conn.commit()
 
     print("Tables created successfully.")
@@ -150,9 +184,13 @@ def recreate_tables(conn):
 # ============================================================
 
 def seed_users(conn):
+    """
+    Insert sample managers, finance administrators,
+    and employees.
+    """
 
     # --------------------------------------------------------
-    # Hash passwords with bcrypt
+    # Hash passwords
     # --------------------------------------------------------
 
     manager_password = hash_password("Manager123!")
@@ -168,7 +206,7 @@ def seed_users(conn):
     with conn.cursor() as cur:
 
         # ----------------------------------------------------
-        # Managers
+        # Manager 1
         # ----------------------------------------------------
 
         cur.execute("""
@@ -187,6 +225,10 @@ def seed_users(conn):
 
         manager1_id = cur.fetchone()[0]
 
+        # ----------------------------------------------------
+        # Manager 2
+        # ----------------------------------------------------
+
         cur.execute("""
             INSERT INTO users (
                 email,
@@ -204,7 +246,7 @@ def seed_users(conn):
         manager2_id = cur.fetchone()[0]
 
         # ----------------------------------------------------
-        # Finance Administrators
+        # Finance Administrator 1
         # ----------------------------------------------------
 
         cur.execute("""
@@ -223,6 +265,10 @@ def seed_users(conn):
 
         finance1_id = cur.fetchone()[0]
 
+        # ----------------------------------------------------
+        # Finance Administrator 2
+        # ----------------------------------------------------
+
         cur.execute("""
             INSERT INTO users (
                 email,
@@ -240,7 +286,7 @@ def seed_users(conn):
         finance2_id = cur.fetchone()[0]
 
         # ----------------------------------------------------
-        # Employees
+        # Employee 1
         # ----------------------------------------------------
 
         cur.execute("""
@@ -261,6 +307,10 @@ def seed_users(conn):
 
         employee1_id = cur.fetchone()[0]
 
+        # ----------------------------------------------------
+        # Employee 2
+        # ----------------------------------------------------
+
         cur.execute("""
             INSERT INTO users (
                 email,
@@ -278,6 +328,10 @@ def seed_users(conn):
         ))
 
         employee2_id = cur.fetchone()[0]
+
+        # ----------------------------------------------------
+        # Employee 3
+        # ----------------------------------------------------
 
         cur.execute("""
             INSERT INTO users (
@@ -317,11 +371,14 @@ def seed_users(conn):
 # ============================================================
 
 def seed_expenses(conn, users):
+    """
+    Insert sample employee expenses.
+    """
 
     with conn.cursor() as cur:
 
         # ----------------------------------------------------
-        # Employee 1 - Submitted expense
+        # Employee 1 - Submitted
         # ----------------------------------------------------
 
         cur.execute("""
@@ -345,7 +402,7 @@ def seed_expenses(conn, users):
         ))
 
         # ----------------------------------------------------
-        # Employee 1 - Approved expense
+        # Employee 1 - Approved
         # ----------------------------------------------------
 
         cur.execute("""
@@ -356,7 +413,13 @@ def seed_expenses(conn, users):
                 approved_at,
                 approved_by
             )
-            VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s);
+            VALUES (
+                %s,
+                %s,
+                %s,
+                CURRENT_TIMESTAMP,
+                %s
+            );
         """, (
             users["employee1"],
             Jsonb({
@@ -372,7 +435,7 @@ def seed_expenses(conn, users):
         ))
 
         # ----------------------------------------------------
-        # Employee 2 - Submitted expense
+        # Employee 2 - Submitted
         # ----------------------------------------------------
 
         cur.execute("""
@@ -396,7 +459,7 @@ def seed_expenses(conn, users):
         ))
 
         # ----------------------------------------------------
-        # Employee 2 - Rejected expense
+        # Employee 2 - Rejected
         # ----------------------------------------------------
 
         cur.execute("""
@@ -407,7 +470,13 @@ def seed_expenses(conn, users):
                 approved_at,
                 approved_by
             )
-            VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s);
+            VALUES (
+                %s,
+                %s,
+                %s,
+                CURRENT_TIMESTAMP,
+                %s
+            );
         """, (
             users["employee2"],
             Jsonb({
@@ -423,7 +492,7 @@ def seed_expenses(conn, users):
         ))
 
         # ----------------------------------------------------
-        # Employee 3 - Submitted expense
+        # Employee 3 - Submitted
         # ----------------------------------------------------
 
         cur.execute("""
@@ -456,11 +525,15 @@ def seed_expenses(conn, users):
 # ============================================================
 
 def display_data(conn):
-
-    print("\nUsers:")
-    print("-" * 80)
+    """
+    Display the users and expenses currently stored
+    in the database.
+    """
 
     with conn.cursor() as cur:
+
+        print("\nUsers:")
+        print("-" * 80)
 
         cur.execute("""
             SELECT
@@ -509,7 +582,7 @@ def main():
 
     print("\nWARNING:")
     print("This script will DROP and recreate the users and expenses tables.")
-    print("All existing data in those tables will be deleted.")
+    print("ALL existing data in those tables will be deleted.")
 
     confirmation = input(
         '\nType "SEED" to continue: '
@@ -519,13 +592,15 @@ def main():
         print("Seeding cancelled.")
         return
 
+    conn = None
+
     try:
 
         print("\nGenerating IAM database authentication token...")
 
         conn = get_connection()
 
-        print("Connected to Aurora PostgreSQL using IAM authentication.")
+        print("Connected to RDS PostgreSQL using IAM authentication.")
 
         recreate_tables(conn)
 
@@ -534,8 +609,6 @@ def main():
         seed_expenses(conn, users)
 
         display_data(conn)
-
-        conn.close()
 
         print("\n" + "=" * 60)
         print("DATABASE SEEDING COMPLETE")
@@ -546,7 +619,16 @@ def main():
         print("\nERROR:")
         print(e)
 
+        if conn:
+            conn.rollback()
+
         raise
+
+    finally:
+
+        if conn:
+            conn.close()
+            print("\nDatabase connection closed.")
 
 
 if __name__ == "__main__":

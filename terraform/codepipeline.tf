@@ -100,7 +100,8 @@ resource "aws_iam_role_policy" "codebuild" {
           "ecr:CompleteLayerUpload",
           "ecr:InitiateLayerUpload",
           "ecr:PutImage",
-          "ecr:UploadLayerPart"
+          "ecr:UploadLayerPart",
+          "ecr:DescribeImages"
         ]
 
         Resource = aws_ecr_repository.login.arn
@@ -285,7 +286,8 @@ resource "aws_iam_role_policy" "codepipeline" {
           "ecs:DescribeTaskDefinition",
           "ecs:RegisterTaskDefinition",
           "ecs:UpdateService",
-          "ecs:DescribeClusters"
+          "ecs:DescribeClusters",
+          "ecs:TagResource"
         ]
 
         Resource = "*"

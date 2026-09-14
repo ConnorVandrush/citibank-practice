@@ -75,3 +75,32 @@ resource "aws_security_group" "postgres" {
     Name = "citibank-practice-postgres-sg"
   }
 }
+
+resource "aws_security_group" "cloudshell" {
+  name        = "citibank-practice-cloudshell"
+  description = "Security group for CloudShell database administration"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    description = "Allow outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "citibank-practice-cloudshell"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "postgres_from_cloudshell" {
+  security_group_id            = aws_security_group.postgres.id
+  referenced_security_group_id = aws_security_group.cloudshell.id
+
+  from_port   = 5432
+  to_port     = 5432
+  ip_protocol = "tcp"
+
+  description = "Allow CloudShell to connect to PostgreSQL"
+}
