@@ -216,8 +216,6 @@ resource "aws_iam_role_policy" "codepipeline" {
     Version = "2012-10-17"
 
     Statement = [
-
-      # Artifact bucket
       {
         Effect = "Allow"
 
@@ -242,7 +240,6 @@ resource "aws_iam_role_policy" "codepipeline" {
         Resource = "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
       },
 
-      # CodeBuild
       {
         Effect = "Allow"
 
@@ -252,6 +249,17 @@ resource "aws_iam_role_policy" "codepipeline" {
         ]
 
         Resource = aws_codebuild_project.login.arn
+      },
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "codeconnections:UseConnection",
+          "codestar-connections:UseConnection"
+        ]
+
+        Resource = var.github_connection_arn
       }
     ]
   })
