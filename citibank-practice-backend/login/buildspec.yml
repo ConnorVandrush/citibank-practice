@@ -5,22 +5,33 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
       - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/citibank-practice-backend-login
       - IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - IMAGE_URI=$REPOSITORY_URI:$IMAGE_TAG
+
       - echo Repository URI is $REPOSITORY_URI
       - echo Image tag is $IMAGE_TAG
+      - echo Image URI is $IMAGE_URI
 
   build:
     commands:
       - echo Building Docker image...
-      - docker build -t $REPOSITORY_URI:$IMAGE_TAG citibank-practice-backend/login
+      - docker build -t $IMAGE_URI citibank-practice-backend/login
 
   post_build:
     commands:
-      - echo Pushing Docker image to Amazon ECR...
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Checking whether image already exists in ECR...
+      - |
+        if aws ecr describe-images --repository-name citibank-practice-backend-login --image-ids imageTag=$IMAGE_TAG --region $AWS_DEFAULT_REGION > /dev/null 2>&1; then
+          echo "Image $IMAGE_TAG already exists in ECR. Skipping push."
+        else
+          echo "Image $IMAGE_TAG does not exist. Pushing to ECR..."
+          docker push $IMAGE_URI
+        fi
+
       - echo Creating imagedefinitions.json...
-      - printf '[{"name":"login","imageUri":"%s"}]' "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
+      - printf '[{"name":"login","imageUri":"%s"}]' "$IMAGE_URI" > imagedefinitions.json
       - cat imagedefinitions.json
       - echo Build completed successfully.
 
