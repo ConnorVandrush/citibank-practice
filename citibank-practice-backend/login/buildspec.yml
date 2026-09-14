@@ -19,4 +19,11 @@ phases:
     commands:
       - echo Pushing Docker image to Amazon ECR...
       - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Creating imagedefinitions.json...
+      - printf '[{"name":"login","imageUri":"%s"}]' "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
+      - cat imagedefinitions.json
       - echo Build completed successfully.
+
+artifacts:
+  files:
+    - imagedefinitions.json

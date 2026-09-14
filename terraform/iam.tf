@@ -38,6 +38,36 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
 
 
 # =========================================================
+# ECS Execution Role - Secrets Manager
+#
+# Allows ECS/Fargate to retrieve the JWT secret
+# from AWS Secrets Manager when starting the container.
+# =========================================================
+
+resource "aws_iam_role_policy" "ecs_execution_secrets" {
+  name = "citibank-practice-ecs-execution-secrets"
+
+  role = aws_iam_role.ecs_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+
+        Resource = aws_secretsmanager_secret.jwt.arn
+      }
+    ]
+  })
+}
+
+
+# =========================================================
 # Login Task Role
 #
 # Used by the Login application itself.
