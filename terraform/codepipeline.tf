@@ -143,10 +143,10 @@ resource "aws_codebuild_project" "login" {
   }
 
   environment {
-    compute_type                = "BUILD_GENERAL1_SMALL"
-    image                       = "aws/codebuild/standard:7.0"
-    type                        = "LINUX_CONTAINER"
-    privileged_mode             = true
+    compute_type    = "BUILD_GENERAL1_SMALL"
+    image           = "aws/codebuild/standard:7.0"
+    type            = "LINUX_CONTAINER"
+    privileged_mode = true
 
     environment_variable {
       name  = "AWS_ACCOUNT_ID"
@@ -216,6 +216,9 @@ resource "aws_iam_role_policy" "codepipeline" {
     Version = "2012-10-17"
 
     Statement = [
+      # ========================================================
+      # S3 - CodePipeline artifact bucket
+      # ========================================================
       {
         Effect = "Allow"
 
@@ -226,6 +229,9 @@ resource "aws_iam_role_policy" "codepipeline" {
         Resource = aws_s3_bucket.codepipeline_artifacts.arn
       },
 
+      # ========================================================
+      # S3 - CodePipeline artifacts
+      # ========================================================
       {
         Effect = "Allow"
 
@@ -240,6 +246,9 @@ resource "aws_iam_role_policy" "codepipeline" {
         Resource = "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
       },
 
+      # ========================================================
+      # CodeBuild
+      # ========================================================
       {
         Effect = "Allow"
 
@@ -251,6 +260,9 @@ resource "aws_iam_role_policy" "codepipeline" {
         Resource = aws_codebuild_project.login.arn
       },
 
+      # ========================================================
+      # GitHub CodeConnections
+      # ========================================================
       {
         Effect = "Allow"
 
@@ -260,6 +272,41 @@ resource "aws_iam_role_policy" "codepipeline" {
         ]
 
         Resource = var.github_connection_arn
+      },
+
+      # ========================================================
+      # ECS Deployment
+      # ========================================================
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:DescribeTaskDefinition",
+          "ecs:RegisterTaskDefinition",
+          "ecs:UpdateService"
+        ]
+
+        Resource = "*"
+      },
+
+      # ========================================================
+      # IAM PassRole
+      #
+      # Allows CodePipeline to tell ECS which IAM roles
+      # the new task definition should use.
+      # ========================================================
+      {
+        Effect = "Allow"
+
+        Action = [
+          "iam:PassRole"
+        ]
+
+        Resource = [
+          aws_iam_role.ecs_execution.arn,
+          aws_iam_role.login_task.arn
+        ]
       }
     ]
   })
@@ -274,9 +321,31 @@ resource "aws_codepipeline" "login" {
   name     = "citibank-practice-login-pipeline"
   role_arn = aws_iam_role.codepipeline.arn
 
+  pipeline_type = "V2"
+
   artifact_store {
     location = aws_s3_bucket.codepipeline_artifacts.bucket
     type     = "S3"
+  }
+
+  trigger {
+    provider_type = "CodeStarSourceConnection"
+
+    git_configuration {
+      source_action_name = "GitHub"
+
+      push {
+        branches {
+          includes = ["main"]
+        }
+
+        file_paths {
+          includes = [
+            "citibank-practice-backend/login/**"
+          ]
+        }
+      }
+    }
   }
 
   stage {
@@ -302,16 +371,37 @@ resource "aws_codepipeline" "login" {
     name = "Build"
 
     action {
-      name            = "BuildLoginImage"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      version         = "1"
+      name     = "BuildLoginImage"
+      category = "Build"
+      owner    = "AWS"
+      provider = "CodeBuild"
+      version  = "1"
 
-      input_artifacts = ["source_output"]
+      input_artifacts  = ["source_output"]
+      output_artifacts = ["build_output"]
 
       configuration = {
         ProjectName = aws_codebuild_project.login.name
+      }
+    }
+  }
+
+  stage {
+    name = "Deploy"
+
+    action {
+      name     = "DeployLoginToECS"
+      category = "Deploy"
+      owner    = "AWS"
+      provider = "ECS"
+      version  = "1"
+
+      input_artifacts = ["build_output"]
+
+      configuration = {
+        ClusterName = aws_ecs_cluster.main.name
+        ServiceName = aws_ecs_service.login.name
+        FileName    = "imagedefinitions.json"
       }
     }
   }

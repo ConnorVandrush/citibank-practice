@@ -56,6 +56,115 @@ resource "aws_cloudwatch_log_group" "finance_admin" {
   }
 }
 
+resource "aws_ecs_task_definition" "login" {
+  family                   = "citibank-practice-login"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+
+  cpu    = "256"
+  memory = "512"
+
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.login_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "login"
+      image     = "${aws_ecr_repository.login.repository_url}:cce841a9239dd4f38d9e484cc746f4579e958882"
+      essential = true
+
+      portMappings = [
+        {
+          containerPort = 8000
+          hostPort      = 8000
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        {
+          name  = "AWS_REGION"
+          value = var.aws_region
+        },
+        {
+          name  = "DB_HOST"
+          value = aws_db_instance.postgres.address
+        },
+        {
+          name  = "DB_PORT"
+          value = "5432"
+        },
+        {
+          name  = "DB_NAME"
+          value = aws_db_instance.postgres.db_name
+        },
+        {
+          name  = "DB_USER"
+          value = "postgres"
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "JWT_SECRET"
+          valueFrom = aws_secretsmanager_secret.jwt.arn
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.login.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+
+  tags = {
+    Name = "citibank-practice-login-task"
+  }
+}
+
+resource "aws_ecs_service" "login" {
+  name            = "citibank-practice-login"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.login.arn
+
+  desired_count = 1
+
+  launch_type = "FARGATE"
+
+  network_configuration {
+    subnets = [
+      aws_subnet.private_a.id,
+      aws_subnet.private_b.id
+    ]
+
+    security_groups = [
+      aws_security_group.ecs.id
+    ]
+
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.login.arn
+    container_name   = "login"
+    container_port   = 8000
+  }
+
+  depends_on = [
+    aws_lb_listener.backend
+  ]
+
+  tags = {
+    Name = "citibank-practice-login-service"
+  }
+}
+
 
 # ============================================================
 # Outputs
