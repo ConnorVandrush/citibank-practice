@@ -35,21 +35,23 @@ export default function LoginComponent() {
 
         localStorage.setItem("token", token);
 
-        const { employeeID, employeeEmail, managerID, expenses } = await fetch(
-          `/employees/${loginResponse.user_id}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+        const {
+          employeeID,
+          email: employeeEmail,
+          managerID,
+          expenses,
+        } = await fetch(`/employees/${loginResponse.user_id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-        ).then((res) => res.json());
+        }).then((res) => res.json());
 
         dispatch(
           setEmployeeInfo({
             employeeId: employeeID,
-            employeeEmail: employeeEmail,
+            email: employeeEmail,
             managerId: managerID,
             employeeExpenses: expenses,
           }),
