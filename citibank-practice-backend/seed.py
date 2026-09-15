@@ -373,6 +373,9 @@ def seed_users(conn):
 def seed_expenses(conn, users):
     """
     Insert sample employee expenses.
+
+    The expense date is stored inside the JSONB expense_info
+    object as the date the expense occurred.
     """
 
     with conn.cursor() as cur:
@@ -396,7 +399,8 @@ def seed_expenses(conn, users):
                 "amount": 45.75,
                 "currency": "USD",
                 "merchant": "Downtown Restaurant",
-                "receipt": "receipt-001.pdf"
+                "receipt": "receipt-001.pdf",
+                "date": "2026-09-10"
             }),
             "SUBMITTED"
         ))
@@ -428,7 +432,8 @@ def seed_expenses(conn, users):
                 "amount": 325.00,
                 "currency": "USD",
                 "merchant": "Business Hotel",
-                "receipt": "receipt-002.pdf"
+                "receipt": "receipt-002.pdf",
+                "date": "2026-09-09"
             }),
             "APPROVED",
             users["manager1"]
@@ -453,7 +458,8 @@ def seed_expenses(conn, users):
                 "amount": 32.50,
                 "currency": "USD",
                 "merchant": "City Taxi",
-                "receipt": "receipt-003.pdf"
+                "receipt": "receipt-003.pdf",
+                "date": "2026-09-11"
             }),
             "SUBMITTED"
         ))
@@ -485,7 +491,8 @@ def seed_expenses(conn, users):
                 "amount": 120.00,
                 "currency": "USD",
                 "merchant": "Entertainment Center",
-                "receipt": "receipt-004.pdf"
+                "receipt": "receipt-004.pdf",
+                "date": "2026-09-08"
             }),
             "REJECTED",
             users["manager1"]
@@ -510,7 +517,8 @@ def seed_expenses(conn, users):
                 "amount": 86.40,
                 "currency": "USD",
                 "miles": 144,
-                "receipt": None
+                "receipt": None,
+                "date": "2026-09-12"
             }),
             "SUBMITTED"
         ))
