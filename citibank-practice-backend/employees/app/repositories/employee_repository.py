@@ -1,4 +1,5 @@
 from app.database.connection import get_connection
+from psycopg.types.json import Jsonb
 
 
 def get_employee_by_id(employee_id: int):
@@ -66,21 +67,19 @@ def create_expense_for_employee(
     employee_id: int,
     expense_info: dict,
 ):
-    """
-    Insert a new expense for an employee.
-    """
+
     connection = get_connection()
 
     try:
         with connection.cursor() as cursor:
 
-            # Make sure the employee exists.
+            # Verify that the employee exists.
             cursor.execute(
                 """
                 SELECT user_id
                 FROM users
                 WHERE user_id = %s
-                  AND role = 'EMPLOYEE'
+                AND role = 'EMPLOYEE'
                 """,
                 (employee_id,),
             )
@@ -90,6 +89,7 @@ def create_expense_for_employee(
             if employee is None:
                 return None
 
+            # Insert the new expense.
             cursor.execute(
                 """
                 INSERT INTO expenses (
@@ -111,7 +111,7 @@ def create_expense_for_employee(
                 """,
                 (
                     employee_id,
-                    expense_info,
+                    Jsonb(expense_info),
                 ),
             )
 
@@ -126,6 +126,10 @@ def create_expense_for_employee(
             "status": expense[3],
             "submitted_at": expense[4],
         }
+
+    except Exception:
+        connection.rollback()
+        raise
 
     finally:
         connection.close()

@@ -41,7 +41,7 @@ def create_expense(
 
     expense = create_expense_for_employee(
         employee_id=employee_id,
-        expense_info=expense_info.model_dump(),
+        expense_info=expense_info.model_dump(mode="json"),
     )
 
     if expense is None:
