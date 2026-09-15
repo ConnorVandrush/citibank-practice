@@ -1,0 +1,186 @@
+.employeeComponent {
+  width: 100%;
+  min-height: 100vh;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+}
+
+.header p {
+  margin: 0;
+  color: #666;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.expensesSection,
+.formSection {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.expensesSection h2,
+.formSection h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.expenseList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.expenseCard {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.expenseHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.expenseHeader h3 {
+  margin: 0;
+}
+
+.expenseAmount {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 12px 0;
+}
+
+.expenseDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #444;
+}
+
+.expenseFooter {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+  font-size: 13px;
+  color: #777;
+}
+
+.status {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.submitted {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.emptyState {
+  padding: 40px;
+  text-align: center;
+  color: #777;
+  border: 1px dashed #ccc;
+  border-radius: 10px;
+}
+
+.expenseForm {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formGroup label {
+  font-weight: 600;
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.formGroup textarea {
+  resize: vertical;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background: #222;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background: #444;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  padding: 10px;
+  border-radius: 6px;
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.success {
+  padding: 10px;
+  border-radius: 6px;
+  background: #d4edda;
+  color: #155724;
+}
+
+@media (max-width: 900px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+}
