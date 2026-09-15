@@ -3,7 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 export const AppSlice = createSlice({
   name: "app",
   initialState: {
-    currentWindow: "loginWindow"
+    currentWindow: "loginWindow",
   },
   reducers: {
     setCurrentWindow: (state, action) => {

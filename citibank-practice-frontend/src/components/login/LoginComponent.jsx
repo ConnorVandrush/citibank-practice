@@ -1,6 +1,68 @@
+import { useDispatch } from "react-redux";
+import { setCurrentWindow } from "../../store/AppSlice";
+import { setEmployeeInfo } from "../../store/EmployeeSlice";
+
 import styles from "./LoginComponent.module.css";
 
 export default function LoginComponent() {
+  const dispatch = useDispatch();
+
+  function handleLogin(event) {
+    event.preventDefault();
+
+    const email = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    (async () => {
+      try {
+        const loginResponse = await fetch("/auth/login", {
+          method: "POST",
+          body: JSON.stringify({
+            email: email,
+            password: password,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }).then((res) => res.json());
+
+        if (!loginResponse.access_token) {
+          alert("Login failed. Please check your credentials.");
+          return;
+        }
+
+        const token = loginResponse.access_token;
+
+        localStorage.setItem("token", token);
+
+        const { employeeID, employeeEmail, managerID, expenses } = await fetch(
+          `/employees/${loginResponse.user_id}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        ).then((res) => res.json());
+
+        dispatch(
+          setEmployeeInfo({
+            employeeId: employeeID,
+            employeeEmail: employeeEmail,
+            managerId: managerID,
+            employeeExpenses: expenses,
+          }),
+        );
+
+        dispatch(setCurrentWindow("employeeWindow"));
+      } catch (error) {
+        console.error("Login error:", error);
+        alert("Login failed. Please try again.");
+      }
+    })();
+  }
+
   return (
     <div className={styles.loginComponent}>
       <div className={styles.loginCard}>
@@ -28,7 +90,9 @@ export default function LoginComponent() {
             <input type="text" id="username" name="username" />
             <label htmlFor="password">PASSWORD</label>
             <input type="password" id="password" name="password" />
-            <button type="submit">Login</button>
+            <button type="submit" onClick={handleLogin}>
+              Login
+            </button>
           </form>
         </div>
       </div>
