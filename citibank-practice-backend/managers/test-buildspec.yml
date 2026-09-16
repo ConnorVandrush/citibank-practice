@@ -9,4 +9,4 @@ phases:
   build:
     commands:
       - echo "Running Managers service tests..."
-      - PYTHONPATH=. pytest -v
+      - JWT_SECRET=test-secret PYTHONPATH=. pytest -v

@@ -471,9 +471,13 @@ resource "aws_codepipeline" "finance_admin" {
 #
 # GitHub
 #   ↓
-# CodeBuild
+# Frontend Tests
 #   ↓
 # npm ci
+#   ↓
+# npm test
+#   ↓
+# Frontend Build + Deploy
 #   ↓
 # npm run build
 #   ↓
@@ -536,6 +540,32 @@ resource "aws_codepipeline" "frontend" {
         ConnectionArn    = var.github_connection_arn
         FullRepositoryId = "ConnorVandrush/citibank-practice"
         BranchName       = "main"
+      }
+    }
+  }
+
+  # ==========================================================
+  # Test
+  #
+  # Runs:
+  # npm ci
+  # npm test
+  # ==========================================================
+
+  stage {
+    name = "Test"
+
+    action {
+      name     = "TestFrontend"
+      category = "Build"
+      owner    = "AWS"
+      provider = "CodeBuild"
+      version  = "1"
+
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.frontend_test.name
       }
     }
   }

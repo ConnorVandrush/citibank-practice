@@ -798,7 +798,10 @@ resource "aws_iam_role_policy" "codepipeline" {
           "codebuild:BatchGetBuilds"
         ]
 
-        Resource = aws_codebuild_project.frontend.arn
+        Resource = [
+          aws_codebuild_project.frontend.arn,
+          aws_codebuild_project.frontend_test.arn
+        ]
       },
 
       # ======================================================
