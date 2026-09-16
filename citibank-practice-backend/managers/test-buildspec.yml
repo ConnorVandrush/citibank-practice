@@ -9,4 +9,4 @@ phases:
   build:
     commands:
       - echo "Running Managers service tests..."
-      - pytest -v
+      - PYTHONPATH=. pytest -v

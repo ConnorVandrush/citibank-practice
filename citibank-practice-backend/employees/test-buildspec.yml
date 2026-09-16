@@ -9,4 +9,4 @@ phases:
   build:
     commands:
       - echo "Running Employees service tests..."
-      - pytest -v
+      - PYTHONPATH=. pytest -v

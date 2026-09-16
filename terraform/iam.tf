@@ -726,7 +726,10 @@ resource "aws_iam_role_policy" "codepipeline" {
           "codebuild:BatchGetBuilds"
         ]
 
-        Resource = aws_codebuild_project.login.arn
+        Resource = [
+          aws_codebuild_project.login.arn,
+          aws_codebuild_project.login_test.arn
+        ]
       },
 
       # ======================================================
@@ -741,7 +744,10 @@ resource "aws_iam_role_policy" "codepipeline" {
           "codebuild:BatchGetBuilds"
         ]
 
-        Resource = aws_codebuild_project.employees.arn
+        Resource = [
+          aws_codebuild_project.employees.arn,
+          aws_codebuild_project.employees_test.arn
+        ]
       },
 
       # ======================================================
@@ -756,7 +762,10 @@ resource "aws_iam_role_policy" "codepipeline" {
           "codebuild:BatchGetBuilds"
         ]
 
-        Resource = aws_codebuild_project.managers.arn
+        Resource = [
+          aws_codebuild_project.managers.arn,
+          aws_codebuild_project.managers_test.arn
+        ]
       },
 
       # ======================================================
@@ -771,7 +780,10 @@ resource "aws_iam_role_policy" "codepipeline" {
           "codebuild:BatchGetBuilds"
         ]
 
-        Resource = aws_codebuild_project.finance_admin.arn
+        Resource = [
+          aws_codebuild_project.finance_admin.arn,
+          aws_codebuild_project.finance_admin_test.arn
+        ]
       },
 
       # ======================================================
