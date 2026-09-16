@@ -3,3 +3,5 @@ uvicorn[standard]
 psycopg[binary]
 boto3
 python-jose[cryptography]
+pytest
+httpx

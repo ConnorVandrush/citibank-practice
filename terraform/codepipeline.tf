@@ -1,663 +1,4 @@
 # ============================================================
-# CodePipeline Artifact Bucket
-# ============================================================
-
-resource "aws_s3_bucket" "codepipeline_artifacts" {
-  bucket = "citibank-practice-codepipeline-artifacts"
-
-  tags = {
-    Name = "citibank-practice-codepipeline-artifacts"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "codepipeline_artifacts" {
-  bucket = aws_s3_bucket.codepipeline_artifacts.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_versioning" "codepipeline_artifacts" {
-  bucket = aws_s3_bucket.codepipeline_artifacts.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-
-# ============================================================
-# Backend CodeBuild IAM Role
-#
-# Used by the Login, Employees, Managers, and Finance
-# Administrator Docker builds.
-# ============================================================
-
-resource "aws_iam_role" "codebuild" {
-  name = "citibank-practice-codebuild-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-
-    Statement = [{
-      Effect = "Allow"
-
-      Principal = {
-        Service = "codebuild.amazonaws.com"
-      }
-
-      Action = "sts:AssumeRole"
-    }]
-  })
-
-  tags = {
-    Name = "citibank-practice-codebuild-role"
-  }
-}
-
-
-# ============================================================
-# Backend CodeBuild Permissions
-# ============================================================
-
-resource "aws_iam_role_policy" "codebuild" {
-  name = "citibank-practice-codebuild-policy"
-  role = aws_iam_role.codebuild.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-
-    Statement = [
-
-      # ======================================================
-      # CloudWatch Logs
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-
-        Resource = "*"
-      },
-
-      # ======================================================
-      # ECR Authentication
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "ecr:GetAuthorizationToken"
-        ]
-
-        Resource = "*"
-      },
-
-      # ======================================================
-      # ECR - Login
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:CompleteLayerUpload",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart",
-          "ecr:DescribeImages"
-        ]
-
-        Resource = aws_ecr_repository.login.arn
-      },
-
-      # ======================================================
-      # ECR - Employees
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:CompleteLayerUpload",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart",
-          "ecr:DescribeImages"
-        ]
-
-        Resource = aws_ecr_repository.employees.arn
-      },
-
-      # ======================================================
-      # ECR - Managers
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:CompleteLayerUpload",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart",
-          "ecr:DescribeImages"
-        ]
-
-        Resource = aws_ecr_repository.managers.arn
-      },
-
-      # ======================================================
-      # ECR - Finance Administrator
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:CompleteLayerUpload",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart",
-          "ecr:DescribeImages"
-        ]
-
-        Resource = aws_ecr_repository.finance_admin.arn
-      },
-
-      # ======================================================
-      # CodePipeline Artifact Bucket
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "s3:GetObject",
-          "s3:GetObjectVersion",
-          "s3:PutObject",
-          "s3:GetBucketVersioning"
-        ]
-
-        Resource = [
-          aws_s3_bucket.codepipeline_artifacts.arn,
-          "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
-        ]
-      }
-    ]
-  })
-}
-
-
-# ============================================================
-# CodeBuild Project - Login
-# ============================================================
-
-resource "aws_codebuild_project" "login" {
-  name = "citibank-practice-login-build"
-
-  description = "Build and push the Login service Docker image to ECR"
-
-  service_role = aws_iam_role.codebuild.arn
-
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
-  environment {
-    compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "aws/codebuild/standard:7.0"
-    type            = "LINUX_CONTAINER"
-    privileged_mode = true
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = data.aws_caller_identity.current.account_id
-    }
-
-    environment_variable {
-      name  = "AWS_DEFAULT_REGION"
-      value = var.aws_region
-    }
-  }
-
-  source {
-    type      = "CODEPIPELINE"
-    buildspec = "citibank-practice-backend/login/buildspec.yml"
-  }
-
-  logs_config {
-    cloudwatch_logs {
-      group_name  = "/codebuild/citibank-practice-login"
-      stream_name = "build"
-    }
-  }
-
-  tags = {
-    Name = "citibank-practice-login-build"
-  }
-}
-
-
-# ============================================================
-# CodeBuild Project - Employees
-# ============================================================
-
-resource "aws_codebuild_project" "employees" {
-  name = "citibank-practice-employees-build"
-
-  description = "Build and push the Employees service Docker image to ECR"
-
-  service_role = aws_iam_role.codebuild.arn
-
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
-  environment {
-    compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "aws/codebuild/standard:7.0"
-    type            = "LINUX_CONTAINER"
-    privileged_mode = true
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = data.aws_caller_identity.current.account_id
-    }
-
-    environment_variable {
-      name  = "AWS_DEFAULT_REGION"
-      value = var.aws_region
-    }
-  }
-
-  source {
-    type      = "CODEPIPELINE"
-    buildspec = "citibank-practice-backend/employees/buildspec.yml"
-  }
-
-  logs_config {
-    cloudwatch_logs {
-      group_name  = "/codebuild/citibank-practice-employees"
-      stream_name = "build"
-    }
-  }
-
-  tags = {
-    Name = "citibank-practice-employees-build"
-  }
-}
-
-
-# ============================================================
-# CodeBuild Project - Managers
-# ============================================================
-
-resource "aws_codebuild_project" "managers" {
-  name = "citibank-practice-managers-build"
-
-  description = "Build and push the Managers service Docker image to ECR"
-
-  service_role = aws_iam_role.codebuild.arn
-
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
-  environment {
-    compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "aws/codebuild/standard:7.0"
-    type            = "LINUX_CONTAINER"
-    privileged_mode = true
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = data.aws_caller_identity.current.account_id
-    }
-
-    environment_variable {
-      name  = "AWS_DEFAULT_REGION"
-      value = var.aws_region
-    }
-  }
-
-  source {
-    type      = "CODEPIPELINE"
-    buildspec = "citibank-practice-backend/managers/buildspec.yml"
-  }
-
-  logs_config {
-    cloudwatch_logs {
-      group_name  = "/codebuild/citibank-practice-managers"
-      stream_name = "build"
-    }
-  }
-
-  tags = {
-    Name = "citibank-practice-managers-build"
-  }
-}
-
-
-# ============================================================
-# CodeBuild Project - Finance Administrator
-# ============================================================
-
-resource "aws_codebuild_project" "finance_admin" {
-  name = "citibank-practice-finance-admin-build"
-
-  description = "Build and push the Finance Administrator service Docker image to ECR"
-
-  service_role = aws_iam_role.codebuild.arn
-
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
-  environment {
-    compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "aws/codebuild/standard:7.0"
-    type            = "LINUX_CONTAINER"
-    privileged_mode = true
-
-    environment_variable {
-      name  = "AWS_ACCOUNT_ID"
-      value = data.aws_caller_identity.current.account_id
-    }
-
-    environment_variable {
-      name  = "AWS_DEFAULT_REGION"
-      value = var.aws_region
-    }
-  }
-
-  source {
-    type      = "CODEPIPELINE"
-    buildspec = "citibank-practice-backend/finance-admins/buildspec.yml"
-  }
-
-  logs_config {
-    cloudwatch_logs {
-      group_name  = "/codebuild/citibank-practice-finance-admin"
-      stream_name = "build"
-    }
-  }
-
-  tags = {
-    Name = "citibank-practice-finance-admin-build"
-  }
-}
-
-
-# ============================================================
-# CodeBuild Project - Frontend
-#
-# The frontend buildspec:
-# - Installs dependencies
-# - Builds the frontend
-# - Uploads dist/ to S3
-# - Invalidates CloudFront
-# ============================================================
-
-resource "aws_codebuild_project" "frontend" {
-  name = "citibank-practice-frontend-build"
-
-  description = "Build and deploy the frontend to S3 and CloudFront"
-
-  service_role = aws_iam_role.codebuild_frontend.arn
-
-  artifacts {
-    type = "CODEPIPELINE"
-  }
-
-  environment {
-    compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "aws/codebuild/standard:7.0"
-    type            = "LINUX_CONTAINER"
-    privileged_mode = false
-
-    environment_variable {
-      name  = "AWS_DEFAULT_REGION"
-      value = var.aws_region
-    }
-  }
-
-  source {
-    type      = "CODEPIPELINE"
-    buildspec = "citibank-practice-frontend/buildspec.yml"
-  }
-
-  logs_config {
-    cloudwatch_logs {
-      group_name  = "/codebuild/citibank-practice-frontend"
-      stream_name = "build"
-    }
-  }
-
-  tags = {
-    Name = "citibank-practice-frontend-build"
-  }
-}
-
-
-# ============================================================
-# CodePipeline IAM Role
-# ============================================================
-
-resource "aws_iam_role" "codepipeline" {
-  name = "citibank-practice-codepipeline-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-
-    Statement = [{
-      Effect = "Allow"
-
-      Principal = {
-        Service = "codepipeline.amazonaws.com"
-      }
-
-      Action = "sts:AssumeRole"
-    }]
-  })
-
-  tags = {
-    Name = "citibank-practice-codepipeline-role"
-  }
-}
-
-
-# ============================================================
-# CodePipeline Permissions
-# ============================================================
-
-resource "aws_iam_role_policy" "codepipeline" {
-  name = "citibank-practice-codepipeline-policy"
-  role = aws_iam_role.codepipeline.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-
-    Statement = [
-
-      # ======================================================
-      # S3 - Artifact Bucket
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "s3:GetBucketVersioning"
-        ]
-
-        Resource = aws_s3_bucket.codepipeline_artifacts.arn
-      },
-
-      # ======================================================
-      # S3 - Artifacts
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "s3:GetObject",
-          "s3:GetObjectVersion",
-          "s3:PutObject",
-          "s3:GetObjectAcl",
-          "s3:PutObjectAcl"
-        ]
-
-        Resource = "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
-      },
-
-      # ======================================================
-      # CodeBuild - Login
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "codebuild:StartBuild",
-          "codebuild:BatchGetBuilds"
-        ]
-
-        Resource = aws_codebuild_project.login.arn
-      },
-
-      # ======================================================
-      # CodeBuild - Employees
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "codebuild:StartBuild",
-          "codebuild:BatchGetBuilds"
-        ]
-
-        Resource = aws_codebuild_project.employees.arn
-      },
-
-      # ======================================================
-      # CodeBuild - Managers
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "codebuild:StartBuild",
-          "codebuild:BatchGetBuilds"
-        ]
-
-        Resource = aws_codebuild_project.managers.arn
-      },
-
-      # ======================================================
-      # CodeBuild - Finance Administrator
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "codebuild:StartBuild",
-          "codebuild:BatchGetBuilds"
-        ]
-
-        Resource = aws_codebuild_project.finance_admin.arn
-      },
-
-      # ======================================================
-      # CodeBuild - Frontend
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "codebuild:StartBuild",
-          "codebuild:BatchGetBuilds"
-        ]
-
-        Resource = aws_codebuild_project.frontend.arn
-      },
-
-      # ======================================================
-      # GitHub CodeConnections
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "codeconnections:UseConnection",
-          "codestar-connections:UseConnection"
-        ]
-
-        Resource = var.github_connection_arn
-      },
-
-      # ======================================================
-      # ECS Deployment
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "ecs:DescribeServices",
-          "ecs:DescribeTaskDefinition",
-          "ecs:RegisterTaskDefinition",
-          "ecs:UpdateService",
-          "ecs:DescribeClusters",
-          "ecs:TagResource"
-        ]
-
-        Resource = "*"
-      },
-
-      # ======================================================
-      # IAM PassRole
-      # ======================================================
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "iam:PassRole"
-        ]
-
-        Resource = [
-          aws_iam_role.ecs_execution.arn,
-          aws_iam_role.login_task.arn,
-          aws_iam_role.employees_task.arn,
-          aws_iam_role.managers_task.arn,
-          aws_iam_role.finance_admin_task.arn
-        ]
-      }
-    ]
-  })
-}
-
-
-# ============================================================
 # Login Pipeline
 # ============================================================
 
@@ -707,6 +48,24 @@ resource "aws_codepipeline" "login" {
         ConnectionArn    = var.github_connection_arn
         FullRepositoryId = "ConnorVandrush/citibank-practice"
         BranchName       = "main"
+      }
+    }
+  }
+
+  stage {
+    name = "Test"
+
+    action {
+      name     = "TestLogin"
+      category = "Build"
+      owner    = "AWS"
+      provider = "CodeBuild"
+      version  = "1"
+
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.login_test.name
       }
     }
   }
@@ -811,6 +170,24 @@ resource "aws_codepipeline" "employees" {
   }
 
   stage {
+    name = "Test"
+
+    action {
+      name     = "TestEmployees"
+      category = "Build"
+      owner    = "AWS"
+      provider = "CodeBuild"
+      version  = "1"
+
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.employees_test.name
+      }
+    }
+  }
+
+  stage {
     name = "Build"
 
     action {
@@ -910,6 +287,24 @@ resource "aws_codepipeline" "managers" {
   }
 
   stage {
+    name = "Test"
+
+    action {
+      name     = "TestManagers"
+      category = "Build"
+      owner    = "AWS"
+      provider = "CodeBuild"
+      version  = "1"
+
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.managers_test.name
+      }
+    }
+  }
+
+  stage {
     name = "Build"
 
     action {
@@ -1004,6 +399,24 @@ resource "aws_codepipeline" "finance_admin" {
         ConnectionArn    = var.github_connection_arn
         FullRepositoryId = "ConnorVandrush/citibank-practice"
         BranchName       = "main"
+      }
+    }
+  }
+
+  stage {
+    name = "Test"
+
+    action {
+      name     = "TestFinanceAdmin"
+      category = "Build"
+      owner    = "AWS"
+      provider = "CodeBuild"
+      version  = "1"
+
+      input_artifacts = ["source_output"]
+
+      configuration = {
+        ProjectName = aws_codebuild_project.finance_admin_test.name
       }
     }
   }

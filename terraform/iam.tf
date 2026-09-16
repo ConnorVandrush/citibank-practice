@@ -471,3 +471,377 @@ output "codebuild_frontend_role_arn" {
   description = "Frontend CodeBuild IAM role ARN"
   value       = aws_iam_role.codebuild_frontend.arn
 }
+
+# ============================================================
+# Backend CodeBuild IAM Role
+#
+# Used by the Login, Employees, Managers, and Finance
+# Administrator Docker builds.
+# ============================================================
+
+resource "aws_iam_role" "codebuild" {
+  name = "citibank-practice-codebuild-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [{
+      Effect = "Allow"
+
+      Principal = {
+        Service = "codebuild.amazonaws.com"
+      }
+
+      Action = "sts:AssumeRole"
+    }]
+  })
+
+  tags = {
+    Name = "citibank-practice-codebuild-role"
+  }
+}
+
+# ============================================================
+# Backend CodeBuild Permissions
+# ============================================================
+
+resource "aws_iam_role_policy" "codebuild" {
+  name = "citibank-practice-codebuild-policy"
+  role = aws_iam_role.codebuild.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+
+      # ======================================================
+      # CloudWatch Logs
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+
+        Resource = "*"
+      },
+
+      # ======================================================
+      # ECR Authentication
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+
+        Resource = "*"
+      },
+
+      # ======================================================
+      # ECR - Login
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:CompleteLayerUpload",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart",
+          "ecr:DescribeImages"
+        ]
+
+        Resource = aws_ecr_repository.login.arn
+      },
+
+      # ======================================================
+      # ECR - Employees
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:CompleteLayerUpload",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart",
+          "ecr:DescribeImages"
+        ]
+
+        Resource = aws_ecr_repository.employees.arn
+      },
+
+      # ======================================================
+      # ECR - Managers
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:CompleteLayerUpload",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart",
+          "ecr:DescribeImages"
+        ]
+
+        Resource = aws_ecr_repository.managers.arn
+      },
+
+      # ======================================================
+      # ECR - Finance Administrator
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:CompleteLayerUpload",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart",
+          "ecr:DescribeImages"
+        ]
+
+        Resource = aws_ecr_repository.finance_admin.arn
+      },
+
+      # ======================================================
+      # CodePipeline Artifact Bucket
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:PutObject",
+          "s3:GetBucketVersioning"
+        ]
+
+        Resource = [
+          aws_s3_bucket.codepipeline_artifacts.arn,
+          "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# ============================================================
+# CodePipeline IAM Role
+# ============================================================
+
+resource "aws_iam_role" "codepipeline" {
+  name = "citibank-practice-codepipeline-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [{
+      Effect = "Allow"
+
+      Principal = {
+        Service = "codepipeline.amazonaws.com"
+      }
+
+      Action = "sts:AssumeRole"
+    }]
+  })
+
+  tags = {
+    Name = "citibank-practice-codepipeline-role"
+  }
+}
+
+# ============================================================
+# CodePipeline Permissions
+# ============================================================
+
+resource "aws_iam_role_policy" "codepipeline" {
+  name = "citibank-practice-codepipeline-policy"
+  role = aws_iam_role.codepipeline.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+
+      # ======================================================
+      # S3 - Artifact Bucket
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "s3:GetBucketVersioning"
+        ]
+
+        Resource = aws_s3_bucket.codepipeline_artifacts.arn
+      },
+
+      # ======================================================
+      # S3 - Artifacts
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:PutObject",
+          "s3:GetObjectAcl",
+          "s3:PutObjectAcl"
+        ]
+
+        Resource = "${aws_s3_bucket.codepipeline_artifacts.arn}/*"
+      },
+
+      # ======================================================
+      # CodeBuild - Login
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "codebuild:StartBuild",
+          "codebuild:BatchGetBuilds"
+        ]
+
+        Resource = aws_codebuild_project.login.arn
+      },
+
+      # ======================================================
+      # CodeBuild - Employees
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "codebuild:StartBuild",
+          "codebuild:BatchGetBuilds"
+        ]
+
+        Resource = aws_codebuild_project.employees.arn
+      },
+
+      # ======================================================
+      # CodeBuild - Managers
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "codebuild:StartBuild",
+          "codebuild:BatchGetBuilds"
+        ]
+
+        Resource = aws_codebuild_project.managers.arn
+      },
+
+      # ======================================================
+      # CodeBuild - Finance Administrator
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "codebuild:StartBuild",
+          "codebuild:BatchGetBuilds"
+        ]
+
+        Resource = aws_codebuild_project.finance_admin.arn
+      },
+
+      # ======================================================
+      # CodeBuild - Frontend
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "codebuild:StartBuild",
+          "codebuild:BatchGetBuilds"
+        ]
+
+        Resource = aws_codebuild_project.frontend.arn
+      },
+
+      # ======================================================
+      # GitHub CodeConnections
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "codeconnections:UseConnection",
+          "codestar-connections:UseConnection"
+        ]
+
+        Resource = var.github_connection_arn
+      },
+
+      # ======================================================
+      # ECS Deployment
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:DescribeTaskDefinition",
+          "ecs:RegisterTaskDefinition",
+          "ecs:UpdateService",
+          "ecs:DescribeClusters",
+          "ecs:TagResource"
+        ]
+
+        Resource = "*"
+      },
+
+      # ======================================================
+      # IAM PassRole
+      # ======================================================
+
+      {
+        Effect = "Allow"
+
+        Action = [
+          "iam:PassRole"
+        ]
+
+        Resource = [
+          aws_iam_role.ecs_execution.arn,
+          aws_iam_role.login_task.arn,
+          aws_iam_role.employees_task.arn,
+          aws_iam_role.managers_task.arn,
+          aws_iam_role.finance_admin_task.arn
+        ]
+      }
+    ]
+  })
+}
