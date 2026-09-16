@@ -423,3 +423,42 @@ resource "aws_codebuild_project" "finance_admin_test" {
     Name = "citibank-practice-finance-admin-test"
   }
 }
+
+resource "aws_codebuild_project" "frontend_test" {
+  name        = "citibank-practice-frontend-test"
+  description = "Run frontend tests"
+
+  service_role = aws_iam_role.codebuild_frontend.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type    = "BUILD_GENERAL1_SMALL"
+    image           = "aws/codebuild/standard:7.0"
+    type            = "LINUX_CONTAINER"
+    privileged_mode = false
+
+    environment_variable {
+      name  = "AWS_DEFAULT_REGION"
+      value = var.aws_region
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "citibank-practice-frontend/test-buildspec.yml"
+  }
+
+  logs_config {
+    cloudwatch_logs {
+      group_name  = "/codebuild/citibank-practice-frontend-test"
+      stream_name = "test"
+    }
+  }
+
+  tags = {
+    Name = "citibank-practice-frontend-test"
+  }
+}
