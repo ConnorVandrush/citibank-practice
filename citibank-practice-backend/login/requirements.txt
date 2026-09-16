@@ -5,3 +5,5 @@ boto3
 bcrypt
 python-jose[cryptography]
 email-validator
+pytest
+httpx

@@ -1,0 +1,12 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - cd citibank-practice-backend/employees
+      - pip install -r requirements.txt
+
+  build:
+    commands:
+      - echo "Running Employees service tests..."
+      - pytest -v

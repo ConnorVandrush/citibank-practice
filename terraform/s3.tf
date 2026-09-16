@@ -30,3 +30,32 @@ resource "aws_s3_bucket_versioning" "frontend" {
     status = "Enabled"
   }
 }
+
+# ============================================================
+# CodePipeline Artifact Bucket
+# ============================================================
+
+resource "aws_s3_bucket" "codepipeline_artifacts" {
+  bucket = "citibank-practice-codepipeline-artifacts"
+
+  tags = {
+    Name = "citibank-practice-codepipeline-artifacts"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "codepipeline_artifacts" {
+  bucket = aws_s3_bucket.codepipeline_artifacts.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
