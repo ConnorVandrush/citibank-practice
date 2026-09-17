@@ -104,3 +104,41 @@ resource "aws_vpc_security_group_ingress_rule" "postgres_from_cloudshell" {
 
   description = "Allow CloudShell to connect to PostgreSQL"
 }
+
+// TESTING DB group
+resource "aws_security_group" "postgres_test" {
+  name        = "citibank-practice-postgres-test"
+  description = "Public test PostgreSQL database"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "PostgreSQL from my IP"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["99.63.227.189/32"]
+  }
+
+  egress {
+    description = "Allow outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "citibank-practice-postgres-test"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "postgres_test_from_cloudshell" {
+  security_group_id            = aws_security_group.postgres_test.id
+  referenced_security_group_id = aws_security_group.cloudshell.id
+
+  from_port   = 5432
+  to_port     = 5432
+  ip_protocol = "tcp"
+
+  description = "Allow CloudShell to connect to test PostgreSQL"
+}
