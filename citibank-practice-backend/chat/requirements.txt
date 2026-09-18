@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+psycopg[binary]
+boto3
+bcrypt
+python-jose[cryptography]
+email-validator
+pytest
+httpx
+python-socketio[asgi]

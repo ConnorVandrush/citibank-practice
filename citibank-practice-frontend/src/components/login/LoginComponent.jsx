@@ -1,7 +1,7 @@
 import { useDispatch } from "react-redux";
 import { setCurrentWindow } from "../../store/AppSlice";
 import { setEmployeeInfo } from "../../store/EmployeeSlice";
-
+import { socket } from "../../socket/socket.js";
 import styles from "./LoginComponent.module.css";
 
 export default function LoginComponent() {
@@ -34,6 +34,13 @@ export default function LoginComponent() {
         const token = loginResponse.access_token;
 
         localStorage.setItem("token", token);
+
+        // Connect to Socket.IO using the JWT
+        socket.auth = {
+          token: token,
+        };
+
+        socket.connect();
 
         const {
           employeeID,
