@@ -15,8 +15,12 @@ export const EmployeeSlice = createSlice({
       state.managerId = action.payload.managerId;
       state.employeeExpenses = action.payload.employeeExpenses;
     },
+    sendChatMessage: (state, action) => {
+      // This reducer doesn't actually modify the state,
+      // it's just a placeholder for emitting chat messages.
+    },
   },
 });
 
-export const { setEmployeeInfo } = EmployeeSlice.actions;
+export const { setEmployeeInfo, sendChatMessage } = EmployeeSlice.actions;
 export const EmployeeSliceReducer = EmployeeSlice.reducer;
